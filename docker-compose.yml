@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+
+        nginx-proxy:
+            image: jwilder/nginx-proxy
+            restart: always
+            ports:
+              - "80:80"
+              - "443:443"
+            volumes:
+            - /var/run/docker.sock:/tmp/docker.sock:ro
+            - certs:/etc/nginx/certs:ro
+            - vhostd:/etc/nginx/vhost.d
+            - html:/usr/share/nginx/html
+            container_name: nginxproxy
+            labels:
+            - com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy
+        
+        letsencrypt:
+            image: jrcs/letsencrypt-nginx-proxy-companion
+            restart: always
+            environment:
+            - NGINX_PROXY_CONTAINER=nginx-proxy
+            volumes:
+            - certs:/etc/nginx/certs:rw
+            - vhostd:/etc/nginx/vhost.d
+            - html:/usr/share/nginx/html
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            container_name: letsencrypt
+
+
+        www:
+            image: nginx
+            restart: always
+            expose:
+              - "80"
+            volumes:
+              - /home/mize/docker/web/1/www:/usr/share/nginx/html:ro
+            environment:
+            - VIRTUAL_HOST=bdzalazar.com.ar,www.bdzalazar.com.ar
+            - LETSENCRYPT_HOST=bdzalazar.com.ar,www.bdzalazar.com.ar
+            - LETSENCRYPT_EMAIL=brandondylanzalazar@gmail.com
+            depends_on:
+            - nginx-proxy
+            - letsencrypt
+            container_name: www
+volumes: 
+  certs:
+  html:
+  vhostd:
